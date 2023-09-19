@@ -265,3 +265,6 @@ with admixture_tab:
 
 # st.markdown(
 #     "<span style='font-size: small;'>We extend our sincere gratitude to [michal3141](https://github.com/michal3141) for their generous contribution of the underlying source code that serves as the basis for this application. The original source code can be found [here](https://github.com/michal3141/g25).</span>", unsafe_allow_html=True)
+
+st.caption(
+    "Create Dendrograms and PCAs with [PopPlot](http://popplot.com)")
