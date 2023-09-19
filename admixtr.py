@@ -153,11 +153,23 @@ with admixture_tab:
 
     ancestry_breakdown = []  # Initialize ancestry_breakdown outside the scope
     residual_norm = None  # Initialize residual_norm to None
-    aggregate = st.toggle("Aggregate Ancestry")
-
     # Check if source and target text areas are empty
     source_empty = not st.session_state.textbox_content.strip()
     target_empty = not st.session_state.target_textbox_content.strip()
+
+    col1, col2 = st.columns(2)
+
+    aggregate = col1.toggle("Aggregate")
+
+    reduce_populations = col2.toggle("Reduce Populations", disabled=True)
+    # If the checkbox is toggled, add a number input for nonzeros
+    if reduce_populations:
+        nonzeros = st.number_input(
+            "Number of Populations",
+            min_value=3, max_value=5, value=5  # Set min to 3 and max to 5
+        )
+    else:
+        nonzeros = 0  # Default value if checkbox is not selected
 
     calculation_button = False
     # Only show the "Calculate" button if both Source and Target are not empty
@@ -178,7 +190,7 @@ with admixture_tab:
                 constraint_dict = {}
                 operator_dict = {}
                 pop_dict = defaultdict(list)
-                nonzeros = 0
+                # nonzeros = nonzeros
 
                 # Process the pasted sheet file
                 sheetfile_lines = sheetfile.splitlines()
@@ -225,6 +237,7 @@ with admixture_tab:
                                     cp.sum(binary) == nonzeros]
 
                 prob = cp.Problem(cp.Minimize(cost), constraints)
+                # prob.solve(cp.GUROBI)
                 prob.solve()
 
                 dindiv = defaultdict(int)
@@ -263,6 +276,7 @@ with admixture_tab:
             break
         fit_percentage = f"{round(percentage * 100, 1)}%"
         st.code(f'{ancestry} {fit_percentage}')
+
 
 # st.markdown(
 #     "<span style='font-size: small;'>We extend our sincere gratitude to [michal3141](https://github.com/michal3141) for their generous contribution of the underlying source code that serves as the basis for this application. The original source code can be found [here](https://github.com/michal3141/g25).</span>", unsafe_allow_html=True)
