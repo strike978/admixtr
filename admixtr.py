@@ -256,27 +256,34 @@ with admixture_tab:
                 target_name = indivfile.split(",")
                 target_name = target_name[0]
 
+                # Initialize a list to store the results
+                results = []
+
                 if residual_norm is not None:
                     fit_percentage_total = f"{residual_norm * 100:.4f}%"
-                    st.text(
+                    results.append(
                         f'Target: {target_name} \nFit: {fit_percentage_total}')
 
-    # Add an aggregation toggle checkbox
-    if aggregate:
-        # Aggregate the ancestry breakdown
-        aggregated_ancestry = defaultdict(float)
-        for ancestry, percentage in ancestry_breakdown:
-            main_ancestry = ancestry.split(':')[0]
-            aggregated_ancestry[main_ancestry] += percentage
+                # Add "Aggregate" information
+                if aggregate:
+                    # Aggregate the ancestry breakdown
+                    aggregated_ancestry = defaultdict(float)
+                    for ancestry, percentage in ancestry_breakdown:
+                        main_ancestry = ancestry.split(':')[0]
+                        aggregated_ancestry[main_ancestry] += percentage
 
-        ancestry_breakdown = list(aggregated_ancestry.items())
+                    ancestry_breakdown = list(aggregated_ancestry.items())
 
-    for ancestry, percentage in ancestry_breakdown:
-        if percentage < threshold:
-            break
-        fit_percentage = f"{round(percentage * 100, 1)}%"
-        st.code(f'{ancestry} {fit_percentage}')
+                # Add ancestry breakdown
+                for ancestry, percentage in ancestry_breakdown:
+                    if percentage < threshold:
+                        break
+                    fit_percentage = f"{round(percentage * 100, 1)}%"
+                    results.append(f'{ancestry} {fit_percentage}')
 
+                # Display the results in a single code block
+                if results:
+                    st.code("\n\n".join(results))
 
 # st.markdown(
 #     "<span style='font-size: small;'>We extend our sincere gratitude to [michal3141](https://github.com/michal3141) for their generous contribution of the underlying source code that serves as the basis for this application. The original source code can be found [here](https://github.com/michal3141/g25).</span>", unsafe_allow_html=True)
