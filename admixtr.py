@@ -271,7 +271,6 @@ with admixture_tab:
                     for ancestry, percentage in ancestry_breakdown:
                         main_ancestry = ancestry.split(':')[0]
                         aggregated_ancestry[main_ancestry] += percentage
-
                     ancestry_breakdown = list(aggregated_ancestry.items())
 
                 # Add ancestry breakdown
@@ -279,11 +278,12 @@ with admixture_tab:
                     if percentage < threshold:
                         break
                     fit_percentage = f"{round(percentage * 100, 1)}%"
-                    results.append(f'{ancestry} {fit_percentage}')
+                    results.append(f'{fit_percentage} {ancestry}')
 
                 # Display the results in a single code block
                 if results:
                     st.code("\n\n".join(results))
+
 
 # st.markdown(
 #     "<span style='font-size: small;'>We extend our sincere gratitude to [michal3141](https://github.com/michal3141) for their generous contribution of the underlying source code that serves as the basis for this application. The original source code can be found [here](https://github.com/michal3141/g25).</span>", unsafe_allow_html=True)
