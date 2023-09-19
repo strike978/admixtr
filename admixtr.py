@@ -225,7 +225,7 @@ with admixture_tab:
                                     cp.sum(binary) == nonzeros]
 
                 prob = cp.Problem(cp.Minimize(cost), constraints)
-                prob.solve(cp.GLPK_MI)
+                # prob.solve(cp.GLPK_MI)
                 # Get a list of available solvers
                 solvers = cp.installed_solvers()
 
