@@ -10,7 +10,7 @@ if 'textbox_content' not in st.session_state:
 if 'target_textbox_content' not in st.session_state:
     st.session_state.target_textbox_content = ""
 
-# Setting the layout of the page to wide and the title of the page to PopPlot
+# Setting the layout of the page to wide and the title of the page to admixtr
 st.set_page_config(layout="wide", page_title="admixtr", page_icon="🧬")
 st.header(':red[admixtr]')
 
@@ -31,6 +31,19 @@ data_files = {
 def read_data_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         return [line.strip() for line in f]
+
+
+def expand(pop_selector, pop_dict):
+    pops = pop_selector.split('+')
+    ret = []
+    for pop in pops:
+        ret += pop_dict.get(pop, pop)
+    return ret
+
+
+def distance(M, b):
+    b = b[:, np.newaxis]
+    return np.sqrt(np.sum((M - b) ** 2, axis=0))
 
 
 # Create a multiselect checkbox to choose data files
@@ -55,10 +68,6 @@ populations_in_textbox = [line.split(',')[1] if len(line.split(
 populations_in_target_textbox = [line.split(',')[1] if len(line.split(
     ',')) > 1 else '' for line in st.session_state.target_textbox_content.strip().split('\n')]
 
-available_populations_target = [pop for pop in selected_data if pop.split(
-    ',')[1] not in populations_in_target_textbox]
-
-
 # Create a filtered list of available populations based on content after the comma
 available_populations = [pop for pop in selected_data if pop.split(
     ',')[1] not in populations_in_textbox]
@@ -67,9 +76,10 @@ available_populations_target = [pop for pop in selected_data if pop.split(
     ',')[1] not in populations_in_target_textbox]
 
 
-tab1, tab2, tab3 = st.tabs(["Source", "Target", "Run"])
+source_tab, target_tab, admixture_tab = st.tabs(
+    ["Source", "Target", "Admixture"])
 
-with tab1:
+with source_tab:
     group_pop_toggle = st.toggle('Group Populations')
 
     # Group populations with the same word before the first ":" when toggle is enabled
@@ -121,28 +131,9 @@ with tab1:
         st.experimental_rerun()
 
 
-def expand(pop_selector, pop_dict):
-    pops = pop_selector.split('+')
-    ret = []
-    for pop in pops:
-        ret += pop_dict.get(pop, pop)
-    return ret
-
-
-def distance(M, b):
-    b = b[:, np.newaxis]
-    return np.sqrt(np.sum((M - b) ** 2, axis=0))
-
-
-def main():
-
-    # User Inputs
-    pass
-
-
-with tab2:
-    selected_pop_index_target = st.selectbox("Add Populations:", range(len(
-        available_populations_target)), format_func=lambda i: available_populations_target[i].split(',')[0])
+with target_tab:
+    selected_pop_index_target = st.selectbox("Populations:", range(len(
+        available_populations_target)), format_func=lambda i: available_populations_target[i].split(',')[0], key="select_target_selectbox")
     if st.button("Add Population", key="target_select"):
         selected_population_target = available_populations_target[selected_pop_index_target]
         st.session_state.target_textbox_content = selected_population_target
@@ -157,93 +148,105 @@ with tab2:
         st.experimental_rerun()
 
 
-with tab3:
+with admixture_tab:
     sheetfile = data_input
 
     ancestry_breakdown = []  # Initialize ancestry_breakdown outside the scope
     residual_norm = None  # Initialize residual_norm to None
     aggregate = st.toggle("Aggregate Ancestry")
-    calculation_button = st.button("Calculate")
 
-    if calculation_button:
-        if sheetfile.strip() and indivfile.strip():
-            # Your existing code starting from here
-            m = []
-            index2pop = []  # Store the order of population names
-            index2indiv = []
-            indiv2index = {}
-            penalty = 0.
-            threshold = .0001
-            constraint_dict = {}
-            operator_dict = {}
-            pop_dict = defaultdict(list)
-            nonzeros = 0
+    # Check if source and target text areas are empty
+    source_empty = not st.session_state.textbox_content.strip()
+    target_empty = not st.session_state.target_textbox_content.strip()
 
-            # Process the pasted sheet file
-            sheetfile_lines = sheetfile.splitlines()
-            for line in sheetfile_lines:
-                arr = line.strip().split(',')
-                indivname = arr[0]
-                index2pop.append(indivname)  # Store population names in order
-                index2indiv.append(indivname)
-                indiv2index[indivname] = len(
-                    index2indiv) - 1  # Assign an index
-                # Use the entire population name
-                pop_dict[indivname] = [indivname]
-                m.append(np.array([float(x) for x in arr[1:]]))
+    calculation_button = False
+    # Only show the "Calculate" button if both Source and Target are not empty
 
-            M = np.column_stack(m)
+    if source_empty or target_empty:
+        st.error("Please add populations to both Source and Target.")
+    else:
+        calculation_button = st.button("Calculate")
+        if calculation_button:
+            if sheetfile.strip() and indivfile.strip():
+                # Your existing code starting from here
+                m = []
+                index2pop = []  # Store the order of population names
+                index2indiv = []
+                indiv2index = {}
+                penalty = 0.
+                threshold = .0001
+                constraint_dict = {}
+                operator_dict = {}
+                pop_dict = defaultdict(list)
+                nonzeros = 0
 
-            # Process the pasted indiv file
-            indivfile_lines = indivfile.splitlines()
-            for line in indivfile_lines:
-                arr = line.strip().split(',')
-                b = np.array([float(x) for x in arr[1:]])
+                # Process the pasted sheet file
+                sheetfile_lines = sheetfile.splitlines()
+                for line in sheetfile_lines:
+                    arr = line.strip().split(',')
+                    indivname = arr[0]
+                    # Store population names in order
+                    index2pop.append(indivname)
+                    index2indiv.append(indivname)
+                    indiv2index[indivname] = len(
+                        index2indiv) - 1  # Assign an index
+                    # Use the entire population name
+                    pop_dict[indivname] = [indivname]
+                    m.append(np.array([float(x) for x in arr[1:]]))
 
-            x = cp.Variable(M.shape[1])
-            cost = cp.norm2(M @ x - b)**2 + penalty * \
-                cp.sum(cp.multiply(distance(M, b), x))
+                M = np.column_stack(m)
 
-            constraints = [cp.sum(x) == 1, 0 <= x]
+                # Process the pasted indiv file
+                indivfile_lines = indivfile.splitlines()
+                for line in indivfile_lines:
+                    arr = line.strip().split(',')
+                    b = np.array([float(x) for x in arr[1:]])
 
-            for pop_selector, pen in constraint_dict.items():
-                op = operator_dict[pop_selector]
-                sum_expr = cp.sum([x[indiv2index[p]]
-                                  for p in expand(pop_selector, pop_dict)])
-                if op == '=':
-                    constraints.append(sum_expr == pen)
-                elif op == '>=':
-                    constraints.append(sum_expr >= pen)
-                elif op == '<=':
-                    constraints.append(sum_expr <= pen)
+                x = cp.Variable(M.shape[1])
+                cost = cp.norm2(M @ x - b)**2 + penalty * \
+                    cp.sum(cp.multiply(distance(M, b), x))
 
-            if nonzeros > 0:
-                binary = cp.Variable(M.shape[1], boolean=True)
-                constraints += [x - binary <= 0., cp.sum(binary) == nonzeros]
+                constraints = [cp.sum(x) == 1, 0 <= x]
 
-            prob = cp.Problem(cp.Minimize(cost), constraints)
-            prob.solve()
-            dindiv = defaultdict(int)
-            dpop = defaultdict(int)
+                for pop_selector, pen in constraint_dict.items():
+                    op = operator_dict[pop_selector]
+                    sum_expr = cp.sum([x[indiv2index[p]]
+                                       for p in expand(pop_selector, pop_dict)])
+                    if op == '=':
+                        constraints.append(sum_expr == pen)
+                    elif op == '>=':
+                        constraints.append(sum_expr >= pen)
+                    elif op == '<=':
+                        constraints.append(sum_expr <= pen)
 
-            for i, _ in enumerate(range(M.shape[1])):
-                dindiv[index2indiv[i]] += x.value[i]
-                dpop[index2pop[i]] += x.value[i]
+                if nonzeros > 0:
+                    binary = cp.Variable(M.shape[1], boolean=True)
+                    constraints += [x - binary <= 0.,
+                                    cp.sum(binary) == nonzeros]
 
-            # Calculate ancestry breakdown
-            ancestry_breakdown = [(k, v) for k, v in dindiv.items()]
-            ancestry_breakdown.sort(key=lambda x: -x[1])
+                prob = cp.Problem(cp.Minimize(cost), constraints)
+                prob.solve()
+                dindiv = defaultdict(int)
+                dpop = defaultdict(int)
 
-            # Calculate residual_norm within the calculation_button block
-            residual_norm = cp.norm(M @ x - b, p=2).value
-            target_name = indivfile.split(",")
-            target_name = target_name[0]
+                for i, _ in enumerate(range(M.shape[1])):
+                    dindiv[index2indiv[i]] += x.value[i]
+                    dpop[index2pop[i]] += x.value[i]
 
-            if residual_norm is not None:
-                fit_percentage_total = f"{residual_norm * 100:.4f}%"
-                st.text(
-                    f'Target: {target_name} \nFit: {fit_percentage_total}')
-  # Add a Calculate button
+                # Calculate ancestry breakdown
+                ancestry_breakdown = [(k, v) for k, v in dindiv.items()]
+                ancestry_breakdown.sort(key=lambda x: -x[1])
+
+                # Calculate residual_norm within the calculation_button block
+                residual_norm = cp.norm(M @ x - b, p=2).value
+                target_name = indivfile.split(",")
+                target_name = target_name[0]
+
+                if residual_norm is not None:
+                    fit_percentage_total = f"{residual_norm * 100:.4f}%"
+                    st.text(
+                        f'Target: {target_name} \nFit: {fit_percentage_total}')
+
     # Add an aggregation toggle checkbox
     if aggregate:
         # Aggregate the ancestry breakdown
@@ -251,7 +254,6 @@ with tab3:
         for ancestry, percentage in ancestry_breakdown:
             main_ancestry = ancestry.split(':')[0]
             aggregated_ancestry[main_ancestry] += percentage
-        # st.write('-------------- ANCESTRY: -------------')
 
         ancestry_breakdown = list(aggregated_ancestry.items())
 
@@ -261,6 +263,5 @@ with tab3:
         fit_percentage = f"{round(percentage * 100, 1)}%"
         st.code(f'{ancestry} {fit_percentage}')
 
-
-if __name__ == '__main__':
-    main()
+# st.markdown(
+#     "<span style='font-size: small;'>We extend our sincere gratitude to [michal3141](https://github.com/michal3141) for their generous contribution of the underlying source code that serves as the basis for this application. The original source code can be found [here](https://github.com/michal3141/g25).</span>", unsafe_allow_html=True)
