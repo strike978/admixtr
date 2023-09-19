@@ -178,7 +178,7 @@ with admixture_tab:
                 constraint_dict = {}
                 operator_dict = {}
                 pop_dict = defaultdict(list)
-                nonzeros = 0
+                nonzeros = 3
 
                 # Process the pasted sheet file
                 sheetfile_lines = sheetfile.splitlines()
