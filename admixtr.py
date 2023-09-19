@@ -178,7 +178,7 @@ with admixture_tab:
                 constraint_dict = {}
                 operator_dict = {}
                 pop_dict = defaultdict(list)
-                nonzeros = 0
+                nonzeros = 5
 
                 # Process the pasted sheet file
                 sheetfile_lines = sheetfile.splitlines()
@@ -225,7 +225,10 @@ with admixture_tab:
                                     cp.sum(binary) == nonzeros]
 
                 prob = cp.Problem(cp.Minimize(cost), constraints)
-                prob.solve()
+                prob.solve(solver=cp.CBC)
+
+                # prob.solve(solver=cp.MOSEK)
+
                 dindiv = defaultdict(int)
                 dpop = defaultdict(int)
 
