@@ -178,7 +178,7 @@ with admixture_tab:
                 constraint_dict = {}
                 operator_dict = {}
                 pop_dict = defaultdict(list)
-                nonzeros = 5
+                nonzeros = 0
 
                 # Process the pasted sheet file
                 sheetfile_lines = sheetfile.splitlines()
@@ -225,7 +225,12 @@ with admixture_tab:
                                     cp.sum(binary) == nonzeros]
 
                 prob = cp.Problem(cp.Minimize(cost), constraints)
-                prob.solve(solver=cp.CBC)
+                prob.solve()
+                # Get a list of available solvers
+                solvers = cp.installed_solvers()
+
+                # Print the list of installed solvers
+                st.write("Installed solvers:", solvers)
 
                 # prob.solve(solver=cp.MOSEK)
 
