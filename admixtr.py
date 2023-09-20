@@ -125,13 +125,23 @@ with source_tab:
             # If not valid, set selected_option as an empty list
             selected_option = []
 
+    col3, col4 = st.columns(2)
+
     # Create a button to add the selected option to the Textbox
-    if st.button("Add Population"):
+    if col3.button("Add Population"):
         if selected_option:
             for pop in selected_option:
                 if pop not in st.session_state.textbox_content:
                     st.session_state.textbox_content += "\n" + pop
             st.experimental_rerun()
+
+        # Create a button to add all populations from selected time periods
+    if col4.button("Add All Populations"):
+        # Add all available populations to the Textbox
+        for pop in available_populations:
+            if pop not in st.session_state.textbox_content:
+                st.session_state.textbox_content += "\n" + pop
+        st.experimental_rerun()
 
     # Display the Textbox with the entire selected options
     data_input = st.text_area('Enter data in G25 coordinates format:',
