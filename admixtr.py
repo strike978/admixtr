@@ -271,7 +271,6 @@ with admixture_tab:
                                     cp.sum(binary) == nonzeros]
 
                 prob = cp.Problem(cp.Minimize(cost), constraints)
-                # prob.solve(cp.GUROBI)
                 prob.solve()
 
                 dindiv = defaultdict(int)
@@ -306,6 +305,9 @@ with admixture_tab:
                         main_ancestry = ancestry.split(':')[0]
                         aggregated_ancestry[main_ancestry] += percentage
                     ancestry_breakdown = list(aggregated_ancestry.items())
+
+                # Sort the ancestry breakdown by percentage in descending order
+                    ancestry_breakdown.sort(key=lambda x: -x[1])
 
                 # Add ancestry breakdown
                 for ancestry, percentage in ancestry_breakdown:
