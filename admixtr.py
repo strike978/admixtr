@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import cvxpy as cp
 from collections import defaultdict
+import datetime
 
 # Initialize session state attributes
 if 'textbox_content' not in st.session_state:
@@ -106,11 +107,23 @@ with source_tab:
         format_func=lambda i: population_options[i].split(',')[0]
     )
 
-    # Determine the selected option based on the toggle
+    # Check if grouping of populations is enabled
     if group_pop_toggle:
-        selected_option = grouped_populations[population_options[selected_option_index]]
+        # Check if a valid index is selected and within the range of population_options
+        if selected_option_index is not None and selected_option_index < len(population_options):
+            # If valid, select the corresponding grouped populations
+            selected_option = grouped_populations[population_options[selected_option_index]]
+        else:
+            # If not valid, set selected_option as an empty list
+            selected_option = []
     else:
-        selected_option = [population_options[selected_option_index]]
+        # If grouping is not enabled, check if a valid index is selected
+        if selected_option_index is not None:
+            # If valid, select the corresponding population option as a list
+            selected_option = [population_options[selected_option_index]]
+        else:
+            # If not valid, set selected_option as an empty list
+            selected_option = []
 
     # Create a button to add the selected option to the Textbox
     if st.button("Add Population"):
@@ -129,6 +142,17 @@ with source_tab:
         st.session_state.textbox_content = data_input.strip()
         # Fixes issue with text reverting if changed twice?
         st.experimental_rerun()
+
+    # Generate a unique file name based on the current date and time
+    current_datetime = datetime.datetime.now()
+    file_name = f"data_{current_datetime.strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+
+    st.download_button(
+        label="💾 Save Data",
+        data=data_input,
+        key="download_data",
+        file_name=file_name,
+    )
 
 
 with target_tab:
@@ -260,9 +284,9 @@ with admixture_tab:
                 results = []
 
                 if residual_norm is not None:
-                    fit_percentage_total = f"{residual_norm * 100:.4f}%"
+                    fit_percentage_total = f"{residual_norm * 100:.4f}"
                     results.append(
-                        f'Target: {target_name} \nFit: {fit_percentage_total}')
+                        f'Target: {target_name} \nFit: {fit_percentage_total}%')
 
                 # Add "Aggregate" information
                 if aggregate:
@@ -277,8 +301,8 @@ with admixture_tab:
                 for ancestry, percentage in ancestry_breakdown:
                     if percentage < threshold:
                         break
-                    fit_percentage = f"{round(percentage * 100, 1)}%"
-                    results.append(f'{fit_percentage} {ancestry}')
+                    fit_percentage = f"{round(percentage * 100, 1)}"
+                    results.append(f'{fit_percentage}% {ancestry}')
 
                 # Display the results in a single code block
                 if results:
